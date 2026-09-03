@@ -1,2 +1,3 @@
-# No third-party packages required -- csv, json, sqlite3 are all stdlib.
-
+# No third-party packages required to run the agents -- csv, json, sqlite3
+# are all stdlib. pytest is needed only to run tests/.
+pytest
