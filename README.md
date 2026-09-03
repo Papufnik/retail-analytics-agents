@@ -20,6 +20,13 @@ An earlier version of this agent tracked the **highest** wholesale price ever pa
 - **Known column-naming quirks preserved deliberately, not "cleaned up."** The POS export never had a real `sku` column -- only `item id` -- and a separate `sales category` column that should be preferred over `category` when present. An earlier version silently fell back to the wrong field in both cases; the fix (and the comment explaining exactly why) is preserved in the code rather than quietly smoothed over, because the failure mode it prevents is specific and worth knowing about if this logic is ever touched again.
 - **Bad rows are skipped and logged, never allowed to crash the whole agent.** All three scripts feed a daily executive email; one malformed CSV row silently killing an entire section's output is worse than one bad row being skipped with a `[WARN]` and the rest of the run completing.
 
+## Two more real bugs, caught by writing tests for this portfolio
+
+Writing an end-to-end test suite for this repo (see below) surfaced two more real, previously-unnoticed bugs in `margin_erosion_agent.py`, both now fixed with the same "document why, don't scrub the history" approach as everything else here:
+
+- **It never created `dashboard_app/` before writing to it.** `stockout_prevention_agent.py` and `markdown_optimization_agent.py` both call `os.makedirs(out_dir, exist_ok=True)`; this one didn't. It never surfaced in production because some other script always happened to create that folder first -- but since `demo.py` runs the margin-erosion agent *first*, a genuinely fresh clone would have crashed on its very first run.
+- **It never returned its result.** The other two agents both `return output_data`; this one fell off the end and implicitly returned `None`. Harmless for `demo.py`, which only relies on the JSON file it writes to disk -- but it meant nothing could ever call this function directly and get real data back, which is exactly what the new test suite needed to do.
+
 ## My role
 
 I specified what "at risk of stockout," "markdown candidate," and "real margin erosion" should actually mean in business terms, reviewed the AI-assisted implementation against real exported data, and caught the highest-price-vs-most-recent-price bug in `margin_erosion_agent.py` before it shipped further -- the kind of bug that looks completely reasonable in isolation and only breaks once you check it against a SKU whose price actually went the other direction.
@@ -27,12 +34,20 @@ I specified what "at risk of stockout," "markdown candidate," and "real margin e
 ## Run it
 
 ```bash
-pip install -r requirements.txt   # stdlib only -- nothing to install
+pip install -r requirements.txt   # stdlib only to run the agents; pytest only needed for tests/
 python build_sample_data.py        # builds an illustrative SQLite warehouse + sample CSV
 python demo.py                     # runs all three agents end to end
 ```
 
 No real business data is required or included.
+
+## Tests
+
+```bash
+pytest tests/
+```
+
+11 tests, run against the same illustrative sample warehouse `demo.py` uses. `test_margin_erosion_agent.py` pins down the real bug-fix scenario directly (a SKU whose wholesale price dropped between two orders must not alert; one whose price genuinely rose must), and `test_agents_end_to_end.py` runs all three agents against the sample data and checks their actual output -- which is what caught the two additional bugs described above.
 
 ## Stack
 
