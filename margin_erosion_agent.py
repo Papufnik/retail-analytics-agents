@@ -125,6 +125,12 @@ def run_margin_erosion_check():
     business_dir = os.path.dirname(os.path.abspath(__file__))
     exports_dir = os.path.join(business_dir, "sample_data")
     dash_dir = os.path.join(business_dir, "dashboard_app")
+    # 2026-09-03 FIX: unlike stockout_prevention_agent.py and
+    # markdown_optimization_agent.py, this script never created dash_dir
+    # before writing to it -- caught by a new end-to-end test, since
+    # demo.py runs this agent FIRST, a genuinely fresh clone with no
+    # dashboard_app/ directory yet would crash on the very first run.
+    os.makedirs(dash_dir, exist_ok=True)
 
     print(f"=== Margin-Erosion Agent [{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] ===")
 
@@ -204,6 +210,13 @@ def run_margin_erosion_check():
 
     print(f"[SUCCESS] Wrote margin alerts -> {out_file}")
 
+    # 2026-09-03 FIX: unlike stockout_prevention_agent.py and
+    # markdown_optimization_agent.py, this function fell off the end
+    # without returning its payload -- harmless for demo.py (which only
+    # relies on the side effect of the JSON file being written), but it
+    # meant nothing could call this function as a value and get real data
+    # back. Caught by the same new end-to-end test suite.
+    return payload
+
 if __name__ == "__main__":
     run_margin_erosion_check()
-
