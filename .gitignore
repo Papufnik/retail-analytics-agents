@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+db/warehouse.sqlite
+db/warehouse.sqlite-journal
+dashboard_app/*.json
+
