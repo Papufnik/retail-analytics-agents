@@ -3,4 +3,5 @@ __pycache__/
 db/warehouse.sqlite
 db/warehouse.sqlite-journal
 dashboard_app/*.json
+.pytest_cache/
 
